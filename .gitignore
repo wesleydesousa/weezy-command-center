@@ -1,0 +1,17 @@
+.next/
+node_modules/
+.DS_Store
+*.log
+/dist/
+.vinext/
+next-env.d.ts
+/weezy-site-build.tar.gz
+.wrangler/
+
+# Local credentials and runtime files
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+.sites-runtime/
