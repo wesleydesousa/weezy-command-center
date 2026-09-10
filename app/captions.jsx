@@ -17,7 +17,7 @@ export default function Captions({ file, duration, settings, onChange, disabled,
   async function generate() {
     if (busy) return;
     if (!Number.isFinite(duration) || duration <= 0) { setMessage('Aguarde o carregamento da duração do vídeo.'); return; }
-    if (file.size > 150 * 1024 * 1024) { setMessage('Este arquivo ultrapassa 150 MB, o limite de memória desta transcrição local. Carregue uma versão mais compacta do vídeo completo. Nenhuma parte foi transcrita.'); return; }
+    if (file.size > 800 * 1024 * 1024) { setMessage('Este arquivo ultrapassa 800 MB, o limite de arquivo desta transcrição local. Carregue uma versão mais compacta do vídeo completo. Nenhuma parte foi transcrita.'); return; }
     const job = ++generation.current;
     setBusy(true); setMessage('Extraindo o áudio do vídeo inteiro, do início ao fim…');
     let context;
@@ -63,7 +63,7 @@ export default function Captions({ file, duration, settings, onChange, disabled,
   }
   return <section className="captions-panel">
     <h3>Legendas automáticas · IA gratuita</h3>
-    <p>A transcrição sempre cobre o vídeo inteiro, do início ao fim, independentemente do clipe selecionado. Whisper Tiny roda no navegador; seu áudio não é enviado. O primeiro uso baixa o modelo. Arquivos de até 150 MB; vídeos longos podem levar mais tempo.</p>
+    <p>A transcrição sempre cobre o vídeo inteiro, do início ao fim, independentemente do clipe selecionado. Whisper Tiny roda no navegador; seu áudio não é enviado. O primeiro uso baixa o modelo. Arquivos de até 800 MB; o processamento depende da memória disponível no navegador e vídeos longos podem levar mais tempo.</p>
     <fieldset disabled={disabled || busy}><div className="caption-tools">
       <p>Vídeo completo · 00:00 até {Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, '0')}</p>
       <label>Idioma<select value={language} onChange={e => setLanguage(e.target.value)}><option value="portuguese">Português</option><option value="english">Inglês</option><option value="spanish">Espanhol</option></select></label>
