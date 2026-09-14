@@ -609,6 +609,7 @@ export default function Home() {
           <span><strong>WEEZY</strong><small>COMMAND CENTER</small></span>
         </a>
         <nav aria-label="Navegação principal">
+          <a href="/apresentacao">Conheça</a>
           <a href="#ideas"><Icon name="bulb" /> Ideias</a>
           <a className="nav-editor-button" href="#clipforge" aria-label="Editar vídeo"><Icon name="scissors" /> Editar vídeo</a>
           <a href="#planning"><Icon name="calendar" /> Planejamento</a>
