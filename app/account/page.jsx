@@ -35,7 +35,7 @@ export default async function AccountPage() {
       <article className="account-card">
         <span className="account-kicker">CREATOR · 30 DIAS</span>
         <strong>R$ 19,90</strong>
-        <ul><li>Banco de ideias e planejamento</li><li>Editor de Shorts</li><li>Área de conta protegida</li></ul>
+        <ul><li>Editor completo de Shorts</li><li>Até 5 edições por dia</li><li>Até 150 edições por mês</li></ul>
         <PurchaseButton plan="creator">Comprar Creator</PurchaseButton>
       </article>
 

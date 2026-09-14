@@ -11,6 +11,7 @@ Painel profissional para planejamento de conteúdo, edição de Shorts e gestão
 - Usuários, pedidos e acesso aos planos salvos em banco D1.
 - Checkout Mercado Pago com Pix e cartão.
 - Webhook assinado para confirmar pagamentos e ativar 30 dias de acesso.
+- Plano Creator limitado a 5 edições por dia e 150 por mês; plano Pro sem limite.
 
 ## Pagamentos
 

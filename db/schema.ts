@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -26,3 +26,10 @@ export const subscriptions = sqliteTable("subscriptions", {
   expiresAt: text("expires_at"),
   updatedAt: text("updated_at").notNull(),
 });
+
+export const editingUsage = sqliteTable("editing_usage", {
+  userId: text("user_id").notNull().references(() => users.id),
+  usageDate: text("usage_date").notNull(),
+  count: integer("count").notNull().default(0),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => [primaryKey({ columns: [table.userId, table.usageDate] })]);

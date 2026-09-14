@@ -472,6 +472,16 @@ export default function Home() {
       setEditorMessage("Seu teste gratuito de hoje já foi usado. Ative um plano para criar sem limites.");
       return;
     }
+    if (access.paid) {
+      const usageResponse = await fetch("/api/account/usage", { method: "POST" });
+      const usageResult = await usageResponse.json().catch(() => ({}));
+      if (!usageResponse.ok) {
+        if (usageResult.usage) setAccess(current => ({ ...current, usage: usageResult.usage }));
+        setEditorMessage(usageResult.error || "Não foi possível verificar o limite do plano.");
+        return;
+      }
+      if (usageResult.usage) setAccess(current => ({ ...current, usage: usageResult.usage }));
+    }
     setAnalysisState("analyzing");
     setEditorMessage("Lendo ritmo, pausas e picos de áudio…");
     const duration = Math.min(clipDuration, Math.max(4, videoDuration));
@@ -636,12 +646,17 @@ export default function Home() {
         <section className="panel clipforge" id="clipforge">
           <div className="clipforge-heading">
             <div><span className="section-index">IA</span><div><span className="eyebrow"><Icon name="magic" size={14} /> CLIPFORGE</span><h2>Transforme gameplay em clipes</h2><p>Carregue um vídeo, gere sugestões e ajuste cada corte antes de exportar.</p></div></div>
-            <span className={`access-badge ${access.paid ? "paid" : "free"}`}>{access.loading ? "VERIFICANDO PLANO" : access.paid ? `${access.plan.toUpperCase()} · ACESSO COMPLETO` : "GRÁTIS · 1 VÍDEO POR DIA"}</span>
+            <span className={`access-badge ${access.paid ? "paid" : "free"}`}>{access.loading ? "VERIFICANDO PLANO" : access.plan === "creator" ? `CREATOR · ${access.usage?.dailyRemaining ?? 5} RESTANTES HOJE` : access.paid ? "PRO · ACESSO COMPLETO" : "GRÁTIS · 1 VÍDEO POR DIA"}</span>
           </div>
 
           {!access.loading && !access.paid && <div className="limit-banner">
             <div><strong>Você está usando a versão gratuita</strong><span>1 vídeo por dia, até 2 clipes de 30 segundos. Reenquadramento duplo e legendas automáticas são liberados nos planos pagos.</span></div>
             <a href="/account">Liberar ferramenta completa <Icon name="arrow" size={16} /></a>
+          </div>}
+          {access.plan === "creator" && <div className="creator-usage">
+            <div><span>Uso diário</span><strong>{access.usage?.dailyUsed ?? 0} / 5</strong></div>
+            <div><span>Uso mensal</span><strong>{access.usage?.monthlyUsed ?? 0} / 150</strong></div>
+            <small>Os contadores reiniciam diariamente e no início de cada mês.</small>
           </div>}
 
           {!videoUrl ? (
@@ -674,7 +689,7 @@ export default function Home() {
                 <label><span>Duração por clipe · {access.paid ? "até 4 minutos" : "até 30 segundos"}</span><select value={clipDuration} onChange={(event) => setClipDuration(Number(event.target.value))}>{(access.paid ? [15, 30, 45, 60, 90, 120, 180, 240] : [15, 30]).map((value) => <option key={value} value={value}>{value < 60 ? `${value} segundos` : value === 90 ? "1 minuto e 30 segundos" : `${value / 60} ${value === 60 ? "minuto" : "minutos"}`}</option>)}</select><small>{access.paid ? "Se o vídeo for mais curto, o clipe terá no máximo a duração disponível." : "Planos pagos liberam clipes de até 4 minutos."}</small></label>
                 <label><span>Quantidade</span><div className="choice-row">{(access.paid ? [2, 3, 5] : [1, 2]).map((value) => <button key={value} className={clipCount === value ? "active" : ""} onClick={() => setClipCount(value)}>{value} {value === 1 ? "clipe" : "clipes"}</button>)}</div></label>
                 <div className="ai-detects"><span>A análise procura</span><div><i />Picos de áudio</div><div><i />Ritmo e distribuição</div><div><i />Aberturas fortes</div></div>
-                <button className="primary analyze-button" disabled={!videoDuration || analysisState === "analyzing"} onClick={analyzeVideo}>{analysisState === "analyzing" ? <><span className="spinner" /> Analisando vídeo…</> : !access.paid && freeUseComplete ? <>Limite gratuito atingido</> : <><Icon name="magic" /> Gerar cortes com IA</>}</button>
+                <button className="primary analyze-button" disabled={!videoDuration || analysisState === "analyzing"} onClick={analyzeVideo}>{analysisState === "analyzing" ? <><span className="spinner" /> Analisando vídeo…</> : access.plan === "creator" && (access.usage?.dailyRemaining === 0 || access.usage?.monthlyRemaining === 0) ? <>Limite do plano atingido</> : !access.paid && freeUseComplete ? <>Limite gratuito atingido</> : <><Icon name="magic" /> Gerar cortes com IA</>}</button>
                 {editorMessage && <p className="editor-message">{editorMessage}</p>}
               </aside>
             </div>
@@ -864,7 +879,7 @@ export default function Home() {
           </div>
           <div className="pricing-grid">
             <article className="price-card"><span>GRÁTIS</span><strong>R$ 0</strong><p>Planejamento e editor local para começar agora.</p><a className="ghost price-action" href="/account">Criar conta</a></article>
-            <article className="price-card"><span>CREATOR · 30 DIAS</span><strong>R$ 19,90</strong><p>Área de conta, ferramentas de criação e histórico de pagamentos.</p><a className="primary price-action" href="/account">Escolher Creator</a></article>
+            <article className="price-card"><span>CREATOR · 30 DIAS</span><strong>R$ 19,90</strong><p>Editor completo para até 5 vídeos por dia ou 150 edições por mês.</p><a className="primary price-action" href="/account">Escolher Creator</a></article>
             <article className="price-card price-featured"><span>PRO · 30 DIAS</span><strong>R$ 39,90</strong><p>Todos os recursos Creator e prioridade nos próximos recursos.</p><a className="primary price-action" href="/account">Escolher Pro</a></article>
           </div>
           <p className="payment-note">Pagamento processado pelo Mercado Pago com Pix ou cartão.</p>

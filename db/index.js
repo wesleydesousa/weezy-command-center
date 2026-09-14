@@ -30,3 +30,43 @@ export async function getActiveSubscription(userId) {
   if (subscription.expiresAt && new Date(subscription.expiresAt) <= new Date()) return null;
   return subscription;
 }
+
+function usagePeriod() {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date()).filter(part => part.type !== "literal").map(part => [part.type, part.value]));
+  return { day: `${parts.year}-${parts.month}-${parts.day}`, month: `${parts.year}-${parts.month}` };
+}
+
+export async function getEditingUsage(userId) {
+  const { day, month } = usagePeriod();
+  const db = database();
+  const [daily, monthly] = await Promise.all([
+    db.prepare("SELECT count FROM editing_usage WHERE user_id = ? AND usage_date = ?").bind(userId, day).first(),
+    db.prepare("SELECT COALESCE(SUM(count), 0) AS count FROM editing_usage WHERE user_id = ? AND usage_date LIKE ?").bind(userId, `${month}-%`).first(),
+  ]);
+  const dailyUsed = Number(daily?.count || 0);
+  const monthlyUsed = Number(monthly?.count || 0);
+  return { dailyUsed, monthlyUsed, dailyRemaining: Math.max(0, 5 - dailyUsed), monthlyRemaining: Math.max(0, 150 - monthlyUsed) };
+}
+
+export async function consumeEditingUse(userId, plan) {
+  if (plan === "pro") return { allowed: true, unlimited: true };
+  if (plan !== "creator") return { allowed: false, reason: "Plano sem acesso às edições completas." };
+
+  const usage = await getEditingUsage(userId);
+  if (usage.dailyRemaining === 0) return { allowed: false, reason: "Você atingiu 5 edições hoje.", usage };
+  if (usage.monthlyRemaining === 0) return { allowed: false, reason: "Você atingiu 150 edições neste mês.", usage };
+
+  const { day } = usagePeriod();
+  const now = new Date().toISOString();
+  const result = await database().prepare(`
+    INSERT INTO editing_usage (user_id, usage_date, count, updated_at)
+    VALUES (?, ?, 1, ?)
+    ON CONFLICT(user_id, usage_date) DO UPDATE SET count = count + 1, updated_at = excluded.updated_at
+    WHERE count < 5
+  `).bind(userId, day, now).run();
+  const nextUsage = await getEditingUsage(userId);
+  if (!result.meta?.changes) return { allowed: false, reason: "Você atingiu 5 edições hoje.", usage: nextUsage };
+  return { allowed: true, usage: nextUsage };
+}
