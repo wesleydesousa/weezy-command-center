@@ -1,0 +1,55 @@
+import { chatGPTSignOutPath, requireChatGPTUser } from "../chatgpt-auth";
+import { ensureUser, getAccount } from "../../db/index";
+import PurchaseButton from "./purchase-button";
+
+export const dynamic = "force-dynamic";
+
+const PLAN_LABELS = { creator: "Creator", pro: "Pro" };
+
+export default async function AccountPage() {
+  const user = await requireChatGPTUser("/account");
+  await ensureUser(user);
+  const account = await getAccount(user.userId);
+  const active = account.subscription?.status === "active" && (!account.subscription.expiresAt || new Date(account.subscription.expiresAt) > new Date());
+
+  return <main className="account-shell">
+    <header className="account-topbar">
+      <a className="brand" href="/"><span className="brand-mark">W</span><span><strong>WEEZY</strong><small>COMMAND CENTER</small></span></a>
+      <a className="account-link" href="/">Voltar ao painel</a>
+      <a className="account-link" href={chatGPTSignOutPath("/")}>Sair</a>
+    </header>
+
+    <section className="account-hero">
+      <span className="eyebrow">CONTA WEEZY</span>
+      <h1>Seu espaço de criação.</h1>
+      <p>{account.profile?.name || user.displayName}<br /><span>{account.profile?.email}</span></p>
+    </section>
+
+    <section className="account-grid">
+      <article className="account-card account-status">
+        <span className="account-kicker">PLANO ATUAL</span>
+        <strong>{active ? PLAN_LABELS[account.subscription.plan] || account.subscription.plan : "Gratuito"}</strong>
+        <p>{active ? `Acesso ativo até ${new Intl.DateTimeFormat("pt-BR").format(new Date(account.subscription.expiresAt))}.` : "Use as ferramentas essenciais e faça upgrade quando quiser."}</p>
+      </article>
+
+      <article className="account-card">
+        <span className="account-kicker">CREATOR · 30 DIAS</span>
+        <strong>R$ 19,90</strong>
+        <ul><li>Banco de ideias e planejamento</li><li>Editor de Shorts</li><li>Área de conta protegida</li></ul>
+        <PurchaseButton plan="creator">Comprar Creator</PurchaseButton>
+      </article>
+
+      <article className="account-card featured-plan">
+        <span className="account-kicker">PRO · 30 DIAS</span>
+        <strong>R$ 39,90</strong>
+        <ul><li>Todos os recursos Creator</li><li>Prioridade em novos recursos</li><li>Histórico de pagamentos</li></ul>
+        <PurchaseButton plan="pro">Comprar Pro</PurchaseButton>
+      </article>
+    </section>
+
+    <section className="account-card order-history">
+      <div><span className="account-kicker">PAGAMENTOS</span><h2>Histórico</h2></div>
+      {account.orders.length ? <div className="order-list">{account.orders.map(order => <div key={order.id}><span>{PLAN_LABELS[order.plan] || order.plan}</span><span>R$ {(order.amountCents / 100).toFixed(2).replace(".", ",")}</span><span className={`order-status ${order.status}`}>{order.status}</span></div>)}</div> : <p>Nenhum pagamento realizado ainda.</p>}
+    </section>
+  </main>;
+}

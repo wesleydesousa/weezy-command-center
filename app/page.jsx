@@ -585,8 +585,9 @@ export default function Home() {
           <a href="#planning"><Icon name="calendar" /> Planejamento</a>
           <a href="#progress"><Icon name="chart" /> Progresso</a>
           <a href="#shortcuts"><Icon name="keyboard" /> Atalhos</a>
+          <a href="#plans">Planos</a>
         </nav>
-        <span className="private-pill"><span /> Privado</span>
+        <a className="account-button" href="/account">Minha conta</a>
       </header>
 
       <div className="page-shell" id="top">
@@ -830,7 +831,21 @@ export default function Home() {
           <div className="shortcut-note"><Icon name="spark" size={16} /><span>Os atalhos podem mudar conforme o preset e suas personalizações.</span><a href="https://www.blackmagicdesign.com/products/davinciresolve/training" target="_blank" rel="noreferrer">Treinamento oficial <Icon name="chevron" size={14} /></a></div>
         </section>
 
-        <footer><span>WEEZY COMMAND CENTER</span><small>Os dados ficam salvos neste navegador.</small></footer>
+        <section className="pricing-section" id="plans">
+          <div className="pricing-heading">
+            <span className="eyebrow">PLANOS WEEZY</span>
+            <h2>Crie com mais ritmo.</h2>
+            <p>Uma conta protegida, pagamento seguro e acesso por 30 dias. Escolha o nível ideal para o seu canal.</p>
+          </div>
+          <div className="pricing-grid">
+            <article className="price-card"><span>GRÁTIS</span><strong>R$ 0</strong><p>Planejamento e editor local para começar agora.</p><a className="ghost price-action" href="/account">Criar conta</a></article>
+            <article className="price-card"><span>CREATOR · 30 DIAS</span><strong>R$ 19,90</strong><p>Área de conta, ferramentas de criação e histórico de pagamentos.</p><a className="primary price-action" href="/account">Escolher Creator</a></article>
+            <article className="price-card price-featured"><span>PRO · 30 DIAS</span><strong>R$ 39,90</strong><p>Todos os recursos Creator e prioridade nos próximos recursos.</p><a className="primary price-action" href="/account">Escolher Pro</a></article>
+          </div>
+          <p className="payment-note">Pagamento processado pelo Mercado Pago com Pix ou cartão.</p>
+        </section>
+
+        <footer><span>WEEZY COMMAND CENTER</span><small>Projetos no navegador · conta e pagamentos protegidos na nuvem.</small></footer>
       </div>
     </main>
   );

@@ -1,32 +1,24 @@
 # Weezy Command Center
 
-Painel de conteúdo e editor de clipes para games e podcasts.
-
-## Executar
-
-```sh
-npm ci
-npm run dev
-```
-
-```sh
-npm run build
-npm start
-```
+Painel profissional para planejamento de conteúdo, edição de Shorts e gestão de conta do criador.
 
 ## Recursos
 
-- Banco de ideias, planejamento, checklist e progresso.
-- Clipes com duração configurável até 4 minutos.
-- Dois recortes simultâneos, zoom e posição independentes.
-- Legendas locais com Whisper Tiny via Transformers.js, revisão dos textos e tempos e exportação SRT.
-- Transcrição do vídeo inteiro para arquivos de até 800 MB.
-- Exportação local em WebM com texto e legendas.
+- Banco de ideias, calendário editorial e acompanhamento de produção.
+- Editor local de Shorts com cortes, reenquadramento e legendas.
+- Login seguro com ChatGPT, sem armazenamento de senhas no projeto.
+- Usuários, pedidos e acesso aos planos salvos em banco D1.
+- Checkout Mercado Pago com Pix e cartão.
+- Webhook assinado para confirmar pagamentos e ativar 30 dias de acesso.
 
-O modelo de transcrição é baixado no primeiro uso. A transcrição completa com áudio real ainda precisa de validação no navegador. A integração para postar diretamente no YouTube não está implementada.
+## Pagamentos
 
-Os dados de planejamento ficam no navegador. Vídeos, dados do navegador, dependências instaladas e segredos não fazem parte deste repositório. Não é necessária chave de API para a transcrição local.
+Configure `MERCADO_PAGO_ACCESS_TOKEN` e `MERCADO_PAGO_WEBHOOK_SECRET` no ambiente do site. A URL pública de webhook é `/api/payments/webhook`.
 
-A configuração `.openai/hosting.json` identifica o Site existente. Esta cópia no GitHub não configura publicação automática.
- 
-O limite de entrada de 800 MB não garante que todo arquivo possa ser decodificado: a transcrição local depende da RAM disponível e do codec do áudio. Não foi validada uma transcrição real de um arquivo de 800 MB.
+## Desenvolvimento
+
+```bash
+npm install
+npm run db:generate
+npm run dev
+```
