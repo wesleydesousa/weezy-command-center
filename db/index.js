@@ -24,11 +24,26 @@ export async function getAccount(userId) {
   return { profile, subscription, orders: orders.results || [] };
 }
 
+export function isMasterUser(user) {
+  const email = String(user?.email || "").trim().toLowerCase();
+  if (!email) return false;
+  const masterEmails = String(env.MASTER_EMAILS || "")
+    .split(",")
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean);
+  return masterEmails.includes(email);
+}
+
 export async function getActiveSubscription(userId) {
   const subscription = await database().prepare("SELECT plan, status, expires_at AS expiresAt FROM subscriptions WHERE user_id = ?").bind(userId).first();
   if (!subscription || subscription.status !== "active") return null;
   if (subscription.expiresAt && new Date(subscription.expiresAt) <= new Date()) return null;
   return subscription;
+}
+
+export async function getEffectiveSubscription(user) {
+  if (isMasterUser(user)) return { plan: "master", status: "active", expiresAt: null };
+  return getActiveSubscription(user.userId);
 }
 
 function usagePeriod() {
@@ -51,7 +66,7 @@ export async function getEditingUsage(userId) {
 }
 
 export async function consumeEditingUse(userId, plan) {
-  if (plan === "pro") return { allowed: true, unlimited: true };
+  if (plan === "pro" || plan === "master") return { allowed: true, unlimited: true };
   if (plan !== "creator") return { allowed: false, reason: "Plano sem acesso às edições completas." };
 
   const usage = await getEditingUsage(userId);

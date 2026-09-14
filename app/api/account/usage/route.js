@@ -1,11 +1,11 @@
 import { getChatGPTUser } from "../../../chatgpt-auth";
-import { consumeEditingUse, getActiveSubscription } from "../../../../db/index";
+import { consumeEditingUse, getEffectiveSubscription } from "../../../../db/index";
 
 export async function POST() {
   const user = await getChatGPTUser();
   if (!user) return Response.json({ error: "Entre na sua conta para continuar." }, { status: 401 });
 
-  const subscription = await getActiveSubscription(user.userId);
+  const subscription = await getEffectiveSubscription(user);
   if (!subscription) return Response.json({ error: "É necessário ter um plano ativo." }, { status: 403 });
 
   const result = await consumeEditingUse(user.userId, subscription.plan);

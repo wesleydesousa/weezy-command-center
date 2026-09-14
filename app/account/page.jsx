@@ -1,16 +1,18 @@
 import { chatGPTSignOutPath, requireChatGPTUser } from "../chatgpt-auth";
-import { ensureUser, getAccount } from "../../db/index";
+import { ensureUser, getAccount, getEffectiveSubscription } from "../../db/index";
 import PurchaseButton from "./purchase-button";
 
 export const dynamic = "force-dynamic";
 
-const PLAN_LABELS = { creator: "Creator", pro: "Pro" };
+const PLAN_LABELS = { creator: "Creator", pro: "Pro", master: "Master" };
 
 export default async function AccountPage() {
   const user = await requireChatGPTUser("/account");
   await ensureUser(user);
   const account = await getAccount(user.userId);
-  const active = account.subscription?.status === "active" && (!account.subscription.expiresAt || new Date(account.subscription.expiresAt) > new Date());
+  const subscription = await getEffectiveSubscription(user);
+  const active = Boolean(subscription);
+  const master = subscription?.plan === "master";
 
   return <main className="account-shell">
     <header className="account-topbar">
@@ -28,23 +30,29 @@ export default async function AccountPage() {
     <section className="account-grid">
       <article className="account-card account-status">
         <span className="account-kicker">PLANO ATUAL</span>
-        <strong>{active ? PLAN_LABELS[account.subscription.plan] || account.subscription.plan : "Gratuito"}</strong>
-        <p>{active ? `Acesso ativo até ${new Intl.DateTimeFormat("pt-BR").format(new Date(account.subscription.expiresAt))}.` : "Use as ferramentas essenciais e faça upgrade quando quiser."}</p>
+        <strong>{active ? PLAN_LABELS[subscription.plan] || subscription.plan : "Gratuito"}</strong>
+        <p>{master ? "Acesso total permanente, sem limites diários ou mensais." : active ? `Acesso ativo até ${new Intl.DateTimeFormat("pt-BR").format(new Date(subscription.expiresAt))}.` : "Use as ferramentas essenciais e faça upgrade quando quiser."}</p>
       </article>
 
-      <article className="account-card">
-        <span className="account-kicker">CREATOR · 30 DIAS</span>
-        <strong>R$ 19,90</strong>
-        <ul><li>Editor completo de Shorts</li><li>Até 5 edições por dia</li><li>Até 150 edições por mês</li></ul>
-        <PurchaseButton plan="creator">Comprar Creator</PurchaseButton>
-      </article>
+      {master ? <article className="account-card featured-plan" style={{ gridColumn: "span 2" }}>
+        <span className="account-kicker">USUÁRIO MASTER</span>
+        <strong>Acesso total</strong>
+        <ul><li>Editor completo de Shorts</li><li>Edições ilimitadas</li><li>Todos os recursos atuais e futuros</li></ul>
+      </article> : <>
+        <article className="account-card">
+          <span className="account-kicker">CREATOR · 30 DIAS</span>
+          <strong>R$ 19,90</strong>
+          <ul><li>Editor completo de Shorts</li><li>Até 5 edições por dia</li><li>Até 150 edições por mês</li></ul>
+          <PurchaseButton plan="creator">Comprar Creator</PurchaseButton>
+        </article>
 
-      <article className="account-card featured-plan">
-        <span className="account-kicker">PRO · 30 DIAS</span>
-        <strong>R$ 39,90</strong>
-        <ul><li>Todos os recursos Creator</li><li>Prioridade em novos recursos</li><li>Histórico de pagamentos</li></ul>
-        <PurchaseButton plan="pro">Comprar Pro</PurchaseButton>
-      </article>
+        <article className="account-card featured-plan">
+          <span className="account-kicker">PRO · 30 DIAS</span>
+          <strong>R$ 39,90</strong>
+          <ul><li>Todos os recursos Creator</li><li>Prioridade em novos recursos</li><li>Histórico de pagamentos</li></ul>
+          <PurchaseButton plan="pro">Comprar Pro</PurchaseButton>
+        </article>
+      </>}
     </section>
 
     <section className="account-card order-history">
