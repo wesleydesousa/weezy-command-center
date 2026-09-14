@@ -13,6 +13,14 @@ export default async function AccountPage() {
   const subscription = await getEffectiveSubscription(user);
   const active = Boolean(subscription);
   const master = subscription?.plan === "master";
+  const plan = subscription?.plan || "free";
+  const planBenefits = master
+    ? ["Edições ilimitadas", "Todos os recursos", "Acesso permanente"]
+    : plan === "pro"
+      ? ["Edições ilimitadas", "Recursos completos", "Prioridade em novidades"]
+      : plan === "creator"
+        ? ["Até 5 edições por dia", "Até 150 por mês", "Editor completo"]
+        : ["1 vídeo por dia", "Até 2 clipes", "Recursos essenciais"];
 
   return <main className="account-shell">
     <header className="account-topbar">
@@ -28,10 +36,21 @@ export default async function AccountPage() {
     </section>
 
     <section className="account-grid">
-      <article className="account-card account-status">
-        <span className="account-kicker">PLANO ATUAL</span>
-        <strong>{active ? PLAN_LABELS[subscription.plan] || subscription.plan : "Gratuito"}</strong>
-        <p>{master ? "Acesso total permanente, sem limites diários ou mensais." : active ? `Acesso ativo até ${new Intl.DateTimeFormat("pt-BR").format(new Date(subscription.expiresAt))}.` : "Use as ferramentas essenciais e faça upgrade quando quiser."}</p>
+      <article className={`account-card account-status current-plan-card plan-${plan}`}>
+        <div className="current-plan-heading">
+          <span className="account-kicker">SEU PLANO ATUAL</span>
+          <span className="current-plan-badge"><i />{master ? "ACESSO TOTAL" : active ? "ATIVO" : "GRATUITO"}</span>
+        </div>
+        <div className="current-plan-main">
+          <div>
+            <small>VOCÊ ESTÁ USANDO</small>
+            <strong>{active ? PLAN_LABELS[subscription.plan] || subscription.plan : "Gratuito"}</strong>
+          </div>
+          <div className="current-plan-benefits">
+            {planBenefits.map(benefit => <span key={benefit}>✓ {benefit}</span>)}
+          </div>
+        </div>
+        <p>{master ? "Sua conta possui acesso permanente a toda a ferramenta, sem limites diários ou mensais." : active ? `Plano liberado até ${new Intl.DateTimeFormat("pt-BR").format(new Date(subscription.expiresAt))}.` : "Você está no plano gratuito. Faça upgrade quando quiser liberar a ferramenta completa."}</p>
       </article>
 
       {master ? <article className="account-card featured-plan" style={{ gridColumn: "span 2" }}>
