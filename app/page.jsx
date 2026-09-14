@@ -319,7 +319,7 @@ export default function Home() {
   const [videoUrl, setVideoUrl] = useState("");
   const [videoDuration, setVideoDuration] = useState(0);
   const [clipDuration, setClipDuration] = useState(30);
-  const [clipCount, setClipCount] = useState(3);
+  const [clipCount, setClipCount] = useState(2);
   const [clipFormat, setClipFormat] = useState("9:16 · Shorts");
   const [analysisState, setAnalysisState] = useState("idle");
   const [clips, setClips] = useState([]);
@@ -328,7 +328,18 @@ export default function Home() {
   const [exportingId, setExportingId] = useState(null);
   const [editorMessage, setEditorMessage] = useState("");
   const [composition, setComposition] = useState(INITIAL_COMPOSITION);
+  const [access, setAccess] = useState({ loading: true, paid: false, signedIn: false, plan: "free" });
+  const [freeUseComplete, setFreeUseComplete] = useState(false);
   const videoRef = useRef(null);
+
+  useEffect(() => {
+    fetch("/api/account/status", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => setAccess({ loading: false, ...result }))
+      .catch(() => setAccess({ loading: false, paid: false, signedIn: false, plan: "free" }));
+    const today = new Date().toISOString().slice(0, 10);
+    setFreeUseComplete(window.localStorage.getItem("weezy-free-clip-day") === today);
+  }, []);
 
   useEffect(() => {
     if (ideas.length && !ideas.some((idea) => idea.id === selectedId)) {
@@ -457,6 +468,10 @@ export default function Home() {
 
   async function analyzeVideo() {
     if (!videoFile || !videoDuration) return;
+    if (!access.paid && freeUseComplete) {
+      setEditorMessage("Seu teste gratuito de hoje já foi usado. Ative um plano para criar sem limites.");
+      return;
+    }
     setAnalysisState("analyzing");
     setEditorMessage("Lendo ritmo, pausas e picos de áudio…");
     const duration = Math.min(clipDuration, Math.max(4, videoDuration));
@@ -479,6 +494,10 @@ export default function Home() {
     setClips(nextClips);
     setSelectedClipId(nextClips[0]?.id || null);
     setAnalysisState("ready");
+    if (!access.paid) {
+      window.localStorage.setItem("weezy-free-clip-day", new Date().toISOString().slice(0, 10));
+      setFreeUseComplete(true);
+    }
     setEditorMessage(peaks.length ? "Cortes sugeridos a partir dos picos de áudio." : "Cortes distribuídos pelos melhores pontos da duração.");
   }
 
@@ -617,8 +636,13 @@ export default function Home() {
         <section className="panel clipforge" id="clipforge">
           <div className="clipforge-heading">
             <div><span className="section-index">IA</span><div><span className="eyebrow"><Icon name="magic" size={14} /> CLIPFORGE</span><h2>Transforme gameplay em clipes</h2><p>Carregue um vídeo, gere sugestões e ajuste cada corte antes de exportar.</p></div></div>
-            <span className="local-badge">PROCESSAMENTO LOCAL</span>
+            <span className={`access-badge ${access.paid ? "paid" : "free"}`}>{access.loading ? "VERIFICANDO PLANO" : access.paid ? `${access.plan.toUpperCase()} · ACESSO COMPLETO` : "GRÁTIS · 1 VÍDEO POR DIA"}</span>
           </div>
+
+          {!access.loading && !access.paid && <div className="limit-banner">
+            <div><strong>Você está usando a versão gratuita</strong><span>1 vídeo por dia, até 2 clipes de 30 segundos. Reenquadramento duplo e legendas automáticas são liberados nos planos pagos.</span></div>
+            <a href="/account">Liberar ferramenta completa <Icon name="arrow" size={16} /></a>
+          </div>}
 
           {!videoUrl ? (
             <label className="video-drop">
@@ -647,17 +671,18 @@ export default function Home() {
               <aside className="ai-controls">
                 <div className="control-title"><span><Icon name="magic" /></span><div><strong>Direção dos clipes</strong><small>Ajuste a entrega da análise</small></div></div>
                 <label><span>Formato de saída</span><select value={clipFormat} onChange={(event) => setClipFormat(event.target.value)}><option>9:16 · Shorts</option><option>9:16 · Reels</option><option>9:16 · TikTok</option><option>16:9 · YouTube</option></select></label>
-                <label><span>Duração por clipe · até 4 minutos</span><select value={clipDuration} onChange={(event) => setClipDuration(Number(event.target.value))}>{[15, 30, 45, 60, 90, 120, 180, 240].map((value) => <option key={value} value={value}>{value < 60 ? `${value} segundos` : value === 90 ? "1 minuto e 30 segundos" : `${value / 60} ${value === 60 ? "minuto" : "minutos"}`}</option>)}</select><small>Se o vídeo for mais curto, o clipe terá no máximo a duração disponível.</small></label>
-                <label><span>Quantidade</span><div className="choice-row">{[2, 3, 5].map((value) => <button key={value} className={clipCount === value ? "active" : ""} onClick={() => setClipCount(value)}>{value} clipes</button>)}</div></label>
+                <label><span>Duração por clipe · {access.paid ? "até 4 minutos" : "até 30 segundos"}</span><select value={clipDuration} onChange={(event) => setClipDuration(Number(event.target.value))}>{(access.paid ? [15, 30, 45, 60, 90, 120, 180, 240] : [15, 30]).map((value) => <option key={value} value={value}>{value < 60 ? `${value} segundos` : value === 90 ? "1 minuto e 30 segundos" : `${value / 60} ${value === 60 ? "minuto" : "minutos"}`}</option>)}</select><small>{access.paid ? "Se o vídeo for mais curto, o clipe terá no máximo a duração disponível." : "Planos pagos liberam clipes de até 4 minutos."}</small></label>
+                <label><span>Quantidade</span><div className="choice-row">{(access.paid ? [2, 3, 5] : [1, 2]).map((value) => <button key={value} className={clipCount === value ? "active" : ""} onClick={() => setClipCount(value)}>{value} {value === 1 ? "clipe" : "clipes"}</button>)}</div></label>
                 <div className="ai-detects"><span>A análise procura</span><div><i />Picos de áudio</div><div><i />Ritmo e distribuição</div><div><i />Aberturas fortes</div></div>
-                <button className="primary analyze-button" disabled={!videoDuration || analysisState === "analyzing"} onClick={analyzeVideo}>{analysisState === "analyzing" ? <><span className="spinner" /> Analisando vídeo…</> : <><Icon name="magic" /> Gerar cortes com IA</>}</button>
+                <button className="primary analyze-button" disabled={!videoDuration || analysisState === "analyzing"} onClick={analyzeVideo}>{analysisState === "analyzing" ? <><span className="spinner" /> Analisando vídeo…</> : !access.paid && freeUseComplete ? <>Limite gratuito atingido</> : <><Icon name="magic" /> Gerar cortes com IA</>}</button>
                 {editorMessage && <p className="editor-message">{editorMessage}</p>}
               </aside>
             </div>
           )}
 
-          {videoUrl && <ShortComposer videoRef={videoRef} settings={composition} onChange={setComposition} vertical={clipFormat.startsWith("9:16")} disabled={Boolean(exportingId)} />}
-          {videoUrl && videoDuration > 0 && <Captions key={videoUrl} file={videoFile} duration={videoDuration} settings={composition} onChange={setComposition} disabled={Boolean(exportingId)} videoRef={videoRef} />}
+          {videoUrl && access.paid && <ShortComposer videoRef={videoRef} settings={composition} onChange={setComposition} vertical={clipFormat.startsWith("9:16")} disabled={Boolean(exportingId)} />}
+          {videoUrl && videoDuration > 0 && access.paid && <Captions key={videoUrl} file={videoFile} duration={videoDuration} settings={composition} onChange={setComposition} disabled={Boolean(exportingId)} videoRef={videoRef} />}
+          {videoUrl && !access.loading && !access.paid && <div className="premium-lock"><span><Icon name="magic" size={22} /></span><div><strong>Reenquadramento e legendas automáticas</strong><p>Estes recursos fazem parte da ferramenta completa.</p></div><a href="/account">Ver planos</a></div>}
 
           {clips.length > 0 && <div className="clip-results">
             <div className="results-heading"><div><span className="section-index">{String(clips.length).padStart(2, "0")}</span><div><strong>Clipes sugeridos</strong><small>Revise os pontos de entrada e saída</small></div></div><span>Exportação local em WebM</span></div>

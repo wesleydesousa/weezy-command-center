@@ -23,3 +23,10 @@ export async function getAccount(userId) {
   ]);
   return { profile, subscription, orders: orders.results || [] };
 }
+
+export async function getActiveSubscription(userId) {
+  const subscription = await database().prepare("SELECT plan, status, expires_at AS expiresAt FROM subscriptions WHERE user_id = ?").bind(userId).first();
+  if (!subscription || subscription.status !== "active") return null;
+  if (subscription.expiresAt && new Date(subscription.expiresAt) <= new Date()) return null;
+  return subscription;
+}

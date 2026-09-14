@@ -80,6 +80,20 @@ h1 { margin: 14px 0 12px; font: 700 clamp(42px, 6vw, 72px)/.96 Rajdhani; letter-
 .clipforge-heading h2 { margin: 3px 0; font-size: 31px; }
 .clipforge-heading p { margin: 0; color: var(--muted); font-size: 12px; }
 .local-badge { color: #8feaff; border: 1px solid rgba(66,217,255,.22); background: rgba(66,217,255,.08); border-radius: 99px; padding: 8px 10px; font: 700 9px Rajdhani; letter-spacing: .12em; }
+.access-badge { border-radius: 99px; padding: 8px 11px; font: 700 9px Rajdhani; letter-spacing: .1em; white-space: nowrap; }
+.access-badge.free { color: #ffd293; border: 1px solid rgba(255,184,92,.28); background: rgba(255,184,92,.09); }
+.access-badge.paid { color: #8affd3; border: 1px solid rgba(67,213,161,.32); background: rgba(67,213,161,.1); }
+.limit-banner { margin: -7px 0 20px; padding: 14px 16px; display: flex; align-items: center; gap: 18px; border: 1px solid rgba(255,184,92,.22); border-radius: 12px; background: linear-gradient(90deg, rgba(255,184,92,.09), rgba(22,139,255,.06)); }
+.limit-banner div { display: grid; gap: 4px; }
+.limit-banner strong { font-size: 13px; }
+.limit-banner span { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.limit-banner a { margin-left: auto; flex: 0 0 auto; display: flex; align-items: center; gap: 7px; color: white; text-decoration: none; border-radius: 9px; padding: 10px 13px; background: var(--blue); font-size: 11px; font-weight: 700; }
+.premium-lock { margin-top: 20px; padding: 18px; display: flex; align-items: center; gap: 14px; border: 1px solid var(--line-bright); border-radius: 14px; background: rgba(7,20,34,.84); }
+.premium-lock > span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 11px; color: var(--blue-bright); background: rgba(22,139,255,.12); }
+.premium-lock div { flex: 1; }
+.premium-lock strong { font-size: 13px; }
+.premium-lock p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+.premium-lock a { color: #bde1ff; text-decoration: none; font-size: 11px; font-weight: 700; }
 .video-drop { min-height: 285px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 1px dashed rgba(66,217,255,.33); border-radius: 16px; background: linear-gradient(145deg, rgba(22,139,255,.07), rgba(5,13,22,.56)); transition: .2s ease; cursor: pointer; }
 .video-drop:hover { border-color: var(--blue-bright); background: linear-gradient(145deg, rgba(22,139,255,.11), rgba(5,13,22,.66)); }
 .video-drop input, .file-row input { display: none; }
@@ -399,6 +413,8 @@ footer small { font-size: 10px; }
   .stats-strip article { min-height: 105px; padding: 17px; }
   .section-panel, .calendar-panel, .checklist-panel, .progress-panel, .shortcuts-panel, .clipforge { padding: 17px; }
   .clipforge-heading { flex-direction: column; }
+  .limit-banner, .premium-lock { align-items: flex-start; flex-direction: column; }
+  .limit-banner a, .premium-lock a { width: 100%; justify-content: center; margin-left: 0; }
   .video-drop { min-height: 245px; padding: 25px; }
   .video-frame { min-height: 230px; }
   .file-row strong { max-width: 220px; }
