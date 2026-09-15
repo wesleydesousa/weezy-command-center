@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ShortComposer, { INITIAL_COMPOSITION, drawComposition } from "./short-composer";
 import Captions from "./captions";
+import { browserStorageInfo, clearTemporaryEditor, loadTemporaryProject, loadTemporaryVideo, saveTemporaryProject, saveTemporaryVideo } from "./browser-media-storage";
 
 const PIPELINE = ["Ideia", "Roteiro", "Gravação", "Edição", "Pronto", "Publicado"];
 const CHECKS = [
@@ -330,6 +331,9 @@ export default function Home() {
   const [composition, setComposition] = useState(INITIAL_COMPOSITION);
   const [access, setAccess] = useState({ loading: true, paid: false, signedIn: false, plan: "free" });
   const [freeUseComplete, setFreeUseComplete] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
+  const [storageInfo, setStorageInfo] = useState(null);
+  const [storageMessage, setStorageMessage] = useState("Preparando armazenamento local…");
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -339,7 +343,39 @@ export default function Home() {
       .catch(() => setAccess({ loading: false, paid: false, signedIn: false, plan: "free" }));
     const today = new Date().toISOString().slice(0, 10);
     setFreeUseComplete(window.localStorage.getItem("weezy-free-clip-day") === today);
+    let activeRestore = true;
+    Promise.all([loadTemporaryVideo(), loadTemporaryProject(), browserStorageInfo()]).then(([file, project, info]) => {
+      if (!activeRestore) return;
+      setStorageInfo(info);
+      if (file) {
+        setVideoFile(file);
+        setVideoUrl(URL.createObjectURL(file));
+        setComposition({ ...INITIAL_COMPOSITION, ...(project?.composition || {}) });
+        setClips(Array.isArray(project?.clips) ? project.clips : []);
+        setSelectedClipId(project?.selectedClipId || null);
+        setClipDuration(project?.clipDuration || 30);
+        setClipCount(project?.clipCount || 2);
+        setClipFormat(project?.clipFormat || "9:16 · Shorts");
+        setStorageMessage("Projeto temporário restaurado neste navegador.");
+      } else {
+        setStorageMessage("O vídeo e as legendas ficam somente neste navegador.");
+      }
+    }).catch(() => setStorageMessage("Armazenamento temporário indisponível; mantenha esta aba aberta.")).finally(() => {
+      if (activeRestore) setStorageReady(true);
+    });
+    return () => { activeRestore = false; };
   }, []);
+
+  useEffect(() => () => { if (videoUrl) URL.revokeObjectURL(videoUrl); }, [videoUrl]);
+
+  useEffect(() => {
+    if (!storageReady || !videoFile) return;
+    const timer = setTimeout(() => {
+      saveTemporaryProject({ composition, clips, selectedClipId, clipDuration, clipCount, clipFormat })
+        .catch(() => setStorageMessage("Não foi possível salvar as últimas alterações no navegador."));
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [storageReady, videoFile, composition, clips, selectedClipId, clipDuration, clipCount, clipFormat]);
 
   useEffect(() => {
     if (ideas.length && !ideas.some((idea) => idea.id === selectedId)) {
@@ -423,10 +459,14 @@ export default function Home() {
     return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
-  function selectVideo(event) {
+  async function selectVideo(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (videoUrl) URL.revokeObjectURL(videoUrl);
+    if (file.size > 800 * 1024 * 1024) {
+      setEditorMessage("Escolha um vídeo de até 800 MB.");
+      event.target.value = "";
+      return;
+    }
     setVideoFile(file);
     setVideoUrl(URL.createObjectURL(file));
     setVideoDuration(0);
@@ -435,6 +475,22 @@ export default function Home() {
     setSelectedClipId(null);
     setAnalysisState("idle");
     setEditorMessage("");
+    setStorageMessage("Salvando uma cópia temporária no navegador…");
+    try {
+      const info = await saveTemporaryVideo(file);
+      setStorageInfo(info);
+      setStorageMessage("Vídeo salvo temporariamente. Você pode recarregar a página e continuar.");
+    } catch (error) {
+      setStorageMessage(error?.message === "storage-full" ? "O navegador não tem espaço livre suficiente para guardar este vídeo." : "Não foi possível guardar o vídeo; mantenha esta aba aberta.");
+    }
+  }
+
+  async function clearBrowserProject() {
+    await clearTemporaryEditor().catch(() => {});
+    setVideoFile(null); setVideoUrl(""); setVideoDuration(0); setComposition(INITIAL_COMPOSITION);
+    setClips([]); setSelectedClipId(null); setAnalysisState("idle"); setEditorMessage("");
+    setStorageInfo(await browserStorageInfo().catch(() => null));
+    setStorageMessage("Projeto temporário removido deste navegador.");
   }
 
   async function findAudioPeaks(file, duration, wanted) {
@@ -660,12 +716,18 @@ export default function Home() {
             <small>Os contadores reiniciam diariamente e no início de cada mês.</small>
           </div>}
 
+          <div className="browser-storage-bar">
+            <div><strong>Armazenamento temporário no navegador</strong><span>{storageMessage}</span></div>
+            {storageInfo?.quota > 0 && <small>{(storageInfo.available / 1024 / 1024 / 1024).toFixed(1)} GB livres neste navegador</small>}
+            {videoFile && <button type="button" className="ghost" onClick={clearBrowserProject}>Limpar projeto</button>}
+          </div>
+
           {!videoUrl ? (
             <label className="video-drop">
               <input type="file" accept="video/*" onChange={selectVideo} />
               <span className="drop-icon"><Icon name="upload" size={28} /></span>
               <strong>Solte seu vídeo aqui ou clique para escolher</strong>
-              <small>MP4, MOV ou WebM · o arquivo não sai do seu navegador</small>
+              <small>MP4, MOV ou WebM · até 800 MB · o arquivo não sai do seu navegador</small>
               <span className="choose-file">Escolher vídeo</span>
             </label>
           ) : (
