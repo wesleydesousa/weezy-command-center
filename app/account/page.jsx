@@ -53,8 +53,8 @@ export default async function AccountPage() {
         <p>{master ? "Sua conta possui acesso permanente a toda a ferramenta, sem limites diários ou mensais." : active ? `Plano liberado${subscription.expiresAt ? ` até ${new Intl.DateTimeFormat("pt-BR").format(new Date(subscription.expiresAt))}` : ""}.` : "Você está no plano gratuito. Faça upgrade quando quiser liberar a ferramenta completa."}</p>
       </article>
       {master ? <article className="account-card featured-plan account-master-card"><span className="account-kicker">USUÁRIO MASTER</span><strong>Acesso total</strong><ul><li>Editor completo de Shorts</li><li>Edições ilimitadas</li><li>Todos os recursos atuais e futuros</li></ul></article> : <>
-        <article className="account-card"><span className="account-kicker">CREATOR · 30 DIAS</span><strong>R$ 19,90</strong><ul><li>Editor completo de Shorts</li><li>Até 5 edições por dia</li><li>Até 150 edições por mês</li></ul><PurchaseButton plan="creator">Comprar Creator</PurchaseButton></article>
-        <article className="account-card featured-plan"><span className="account-kicker">PRO · 30 DIAS</span><strong>R$ 39,90</strong><ul><li>Todos os recursos Creator</li><li>Prioridade em novos recursos</li><li>Histórico de pagamentos</li></ul><PurchaseButton plan="pro">Comprar Pro</PurchaseButton></article>
+        <article className="account-card"><span className="account-kicker">CREATOR · 30 DIAS</span><strong>R$ 19,90</strong><ul><li>Editor completo de Shorts</li><li>Até 5 edições por dia</li><li>Até 150 edições por mês</li></ul><PurchaseButton plan="creator">Pagar com LivePix</PurchaseButton></article>
+        <article className="account-card featured-plan"><span className="account-kicker">PRO · 30 DIAS</span><strong>R$ 39,90</strong><ul><li>Todos os recursos Creator</li><li>Prioridade em novos recursos</li><li>Histórico de pagamentos</li></ul><PurchaseButton plan="pro">Pagar com LivePix</PurchaseButton></article>
       </>}
     </section>
     <section className="account-card order-history">

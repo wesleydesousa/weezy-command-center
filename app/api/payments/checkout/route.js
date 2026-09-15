@@ -1,6 +1,6 @@
-import { env } from "cloudflare:workers";
 import { getChatGPTUser } from "../../../chatgpt-auth";
 import { database, ensureUser } from "../../../../db/index";
+import { ensureLivePixWebhook, livePixConfigured, livePixRequest } from "../../../../lib/livepix";
 
 const PLANS = {
   creator: { title: "Weezy Creator — 30 dias", amountCents: 1990 },
@@ -10,12 +10,18 @@ const PLANS = {
 export async function POST(request) {
   const user = await getChatGPTUser();
   if (!user) return Response.json({ error: "Entre na sua conta para continuar." }, { status: 401 });
-  const token = env.MERCADO_PAGO_ACCESS_TOKEN;
-  if (!token) return Response.json({ error: "Pagamentos ainda não foram ativados pelo administrador." }, { status: 503 });
+  if (!livePixConfigured()) return Response.json({ error: "O LivePix ainda precisa ser conectado pelo administrador." }, { status: 503 });
 
   const body = await request.json().catch(() => ({}));
   const selected = PLANS[body.plan];
   if (!selected) return Response.json({ error: "Plano inválido." }, { status: 400 });
+
+  const origin = new URL(request.url).origin;
+  try {
+    await ensureLivePixWebhook(`${origin}/api/payments/webhook`);
+  } catch {
+    return Response.json({ error: "Não foi possível conectar ao LivePix agora." }, { status: 502 });
+  }
 
   await ensureUser(user);
   const orderId = crypto.randomUUID();
@@ -23,29 +29,22 @@ export async function POST(request) {
   await database().prepare("INSERT INTO orders (id, user_id, plan, amount_cents, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'pending', ?, ?)")
     .bind(orderId, user.userId, body.plan, selected.amountCents, now, now).run();
 
-  const origin = new URL(request.url).origin;
-  const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+  const response = await livePixRequest("/v2/payments", {
     method: "POST",
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json", "x-idempotency-key": orderId },
     body: JSON.stringify({
-      items: [{ id: body.plan, title: selected.title, quantity: 1, currency_id: "BRL", unit_price: selected.amountCents / 100 }],
-      payer: { email: user.email },
-      external_reference: orderId,
-      metadata: {
-        weezy_order_id: orderId,
-        weezy_user_id: user.userId,
-        weezy_account_email: String(user.email || "").trim().toLowerCase(),
-        weezy_plan: body.plan,
-      },
-      back_urls: { success: `${origin}/account?payment=success`, pending: `${origin}/account?payment=pending`, failure: `${origin}/account?payment=failure` },
-      auto_return: "approved",
-      notification_url: `${origin}/api/payments/webhook`,
+      amount: selected.amountCents,
+      currency: "BRL",
+      redirectUrl: `${origin}/account?payment=success`,
     }),
   });
-  const preference = await response.json();
-  if (!response.ok || !preference.init_point) {
+  const payment = await response.json().catch(() => ({}));
+  const reference = payment?.data?.reference;
+  const checkoutUrl = payment?.data?.redirectUrl;
+  if (!response.ok || !reference || !checkoutUrl) {
     await database().prepare("UPDATE orders SET status = 'failed', updated_at = ? WHERE id = ?").bind(new Date().toISOString(), orderId).run();
     return Response.json({ error: "Não foi possível abrir o pagamento agora." }, { status: 502 });
   }
-  return Response.json({ checkoutUrl: preference.init_point });
+  await database().prepare("UPDATE orders SET provider_payment_id = ?, updated_at = ? WHERE id = ?")
+    .bind(String(reference), new Date().toISOString(), orderId).run();
+  return Response.json({ checkoutUrl });
 }
