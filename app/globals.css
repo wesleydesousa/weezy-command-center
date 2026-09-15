@@ -574,26 +574,20 @@ footer small { font-size: 10px; }
 @media(max-width: 680px) { .caption-row { grid-template-columns: 1fr 1fr; } .caption-row label:nth-of-type(3) { grid-column: 1 / -1; } .caption-tools > * { flex: 1 1 140px; } }
 @media (max-width: 680px) { .short-composer { grid-template-columns: 1fr; padding: 14px; } }
 
-
 /* Current account plan */
-.current-plan-card { grid-column: 1 / -1; position: relative; overflow: hidden; min-height: 205px; padding: 30px 32px; border-color: rgba(66,217,255,.42); background: radial-gradient(circle at 88% 0%, rgba(66,217,255,.13), transparent 32%), linear-gradient(135deg, rgba(22,139,255,.2), rgba(13,27,42,.94) 55%); box-shadow: 0 20px 55px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.04); }
-.current-plan-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: linear-gradient(var(--blue-bright), var(--blue)); box-shadow: 0 0 18px var(--blue); }
-.current-plan-card.plan-master { border-color: rgba(66,217,255,.7); background: radial-gradient(circle at 86% 0%, rgba(66,217,255,.2), transparent 35%), linear-gradient(135deg, rgba(22,139,255,.28), rgba(8,20,32,.96) 62%); }
+.current-plan-card { grid-column: 1 / -1; position: relative; overflow: hidden; min-height: 205px; padding: 30px 32px; border-color: rgba(66,217,255,.42); background: radial-gradient(circle at 88% 0%, rgba(66,217,255,.13), transparent 32%), linear-gradient(135deg, rgba(22,139,255,.2), rgba(13,27,42,.94) 55%); }
+.current-plan-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: linear-gradient(var(--blue-bright), var(--blue)); }
+.current-plan-card.plan-master { border-color: rgba(66,217,255,.7); }
 .current-plan-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .current-plan-badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; color: #a8f7d8; border: 1px solid rgba(67,213,161,.32); border-radius: 999px; background: rgba(67,213,161,.09); font: 700 10px Rajdhani; letter-spacing: .11em; }
 .current-plan-badge i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
 .current-plan-main { margin-top: 25px; display: grid; grid-template-columns: minmax(210px,.7fr) minmax(0,1.3fr); align-items: end; gap: 35px; }
 .current-plan-main small { display: block; color: #6f8ba5; font: 700 9px Rajdhani; letter-spacing: .13em; }
 .current-plan-main > div:first-child > strong { display: block; margin-top: 3px; color: white; font: 700 46px/.95 Rajdhani; }
-.plan-master .current-plan-main > div:first-child > strong { color: var(--blue-bright); text-shadow: 0 0 24px rgba(66,217,255,.24); }
 .current-plan-benefits { display: flex; flex-wrap: wrap; gap: 9px; padding-bottom: 4px; }
 .current-plan-benefits span { padding: 8px 11px; color: #bcd2e5; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.025); font-size: 11px; }
 .current-plan-card > p { margin: 20px 0 0; padding-top: 17px; border-top: 1px solid var(--line); }
-
-@media (max-width: 650px) {
-  .current-plan-card { min-height: 0; padding: 24px 21px; }
-  .current-plan-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
-  .current-plan-main { grid-template-columns: 1fr; align-items: start; gap: 20px; }
-  .current-plan-main > div:first-child > strong { font-size: 40px; }
-  .current-plan-benefits { display: grid; grid-template-columns: 1fr; }
-}
+.account-master-card { grid-column: 1 / -1; }
+.account-signin-card { max-width: 560px; }
+.account-signin-button { display: grid; place-items: center; margin-top: 22px; text-decoration: none; }
+@media (max-width: 650px) { .current-plan-card { min-height: 0; padding: 24px 21px; } .current-plan-heading { align-items: flex-start; flex-direction: column; gap: 12px; } .current-plan-main { grid-template-columns: 1fr; align-items: start; gap: 20px; } .current-plan-main > div:first-child > strong { font-size: 40px; } .current-plan-benefits { display: grid; grid-template-columns: 1fr; } }

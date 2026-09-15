@@ -27,10 +27,7 @@ export async function getAccount(userId) {
 export function isMasterUser(user) {
   const email = String(user?.email || "").trim().toLowerCase();
   if (!email) return false;
-  const masterEmails = String(env.MASTER_EMAILS || "")
-    .split(",")
-    .map(value => value.trim().toLowerCase())
-    .filter(Boolean);
+  const masterEmails = String(env.MASTER_EMAILS || "").split(",").map(value => value.trim().toLowerCase()).filter(Boolean);
   return masterEmails.includes(email);
 }
 
