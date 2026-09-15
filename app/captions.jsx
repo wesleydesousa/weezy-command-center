@@ -111,7 +111,7 @@ export default function Captions({ file, duration, settings, onChange, disabled,
         if (data.requestId !== requestId) return;
         if (data.type === "progress") setMessage(`Trecho ${chunkNumber} de ${chunkTotal} · ${data.message}`);
         if (data.type === "error") { pendingReject.current = null; reject(new Error(data.message)); }
-        if (data.type === "done") { pendingReject.current = null; resolve(data.chunks || []); }
+        if (data.type === "done") { pendingReject.current = null; resolve({ chunks: data.chunks || [], usedQuality: data.usedQuality || qualityMode }); }
       };
       worker.current.onerror = () => { pendingReject.current = null; reject(new Error("Falha ao iniciar a IA local.")); };
       worker.current.postMessage({ audio, language: languageCode, quality: qualityMode, requestId }, [audio.buffer]);
@@ -133,6 +133,7 @@ export default function Captions({ file, duration, settings, onChange, disabled,
       const sink = new AudioBufferSink(track);
       const totalChunks = Math.ceil(duration / CHUNK_SECONDS);
       const next = [];
+      let fallbackUsed = false;
       worker.current = new Worker("/caption-worker.js", { type: "module" });
 
       for (let index = 0; index < totalChunks; index++) {
@@ -145,15 +146,16 @@ export default function Captions({ file, duration, settings, onChange, disabled,
         let peak = 0;
         for (let i = 0; i < audio.length; i++) peak = Math.max(peak, Math.abs(audio[i]));
         if (peak < .0001) continue;
-        const chunks = await transcribeChunk(audio, language, quality, `${job}-${index}`, index + 1, totalChunks);
-        next.push(...groupWords(chunks, start, end, `cue-${job}-${index}`));
+        const result = await transcribeChunk(audio, language, quality, `${job}-${index}`, index + 1, totalChunks);
+        if (quality === "detailed" && result.usedQuality === "fast") fallbackUsed = true;
+        next.push(...groupWords(result.chunks, start, end, `cue-${job}-${index}`));
       }
 
       if (job !== generation.current) return;
       if (next.length) onChange(current => ({ ...current, captions: next.sort((a, b) => a.start - b.start), captionsEnabled: true }));
-      setMessage(next.length ? `Transcrição completa: ${next.length} legendas salvas temporariamente neste navegador.` : "Nenhuma fala identificada. As legendas anteriores foram mantidas.");
+      setMessage(next.length ? `Transcrição completa: ${next.length} legendas salvas${fallbackUsed ? " no modo rápido automático" : ""}.` : "Nenhuma fala identificada. As legendas anteriores foram mantidas.");
     } catch (error) {
-      if (job === generation.current && error?.message !== "cancelled") setMessage(`${error?.message || "Não foi possível gerar as legendas"} Use Chrome ou Edge atualizado e tente novamente.`);
+      if (job === generation.current && error?.message !== "cancelled") setMessage(error?.message || "Não foi possível gerar as legendas. Recarregue a página e tente novamente.");
     } finally {
       input.dispose();
       if (job === generation.current) {
