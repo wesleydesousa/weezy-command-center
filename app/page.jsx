@@ -462,8 +462,8 @@ export default function Home() {
   async function selectVideo(event) {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (file.size > 800 * 1024 * 1024) {
-      setEditorMessage("Escolha um vídeo de até 800 MB.");
+    if (file.size > 3 * 1024 * 1024 * 1024) {
+      setEditorMessage("Escolha um vídeo de até 3 GB.");
       event.target.value = "";
       return;
     }
@@ -727,7 +727,7 @@ export default function Home() {
               <input type="file" accept="video/*" onChange={selectVideo} />
               <span className="drop-icon"><Icon name="upload" size={28} /></span>
               <strong>Solte seu vídeo aqui ou clique para escolher</strong>
-              <small>MP4, MOV ou WebM · até 800 MB · o arquivo não sai do seu navegador</small>
+              <small>MP4, MOV ou WebM · até 3 GB · o arquivo não sai do seu navegador</small>
               <span className="choose-file">Escolher vídeo</span>
             </label>
           ) : (

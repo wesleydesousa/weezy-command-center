@@ -44,7 +44,7 @@ const FEATURES = [
 ];
 
 const FLOW = [
-  ["01", "Envie", "Escolha sua gravação de até 800 MB."],
+  ["01", "Envie", "Escolha sua gravação de até 3 GB."],
   ["02", "Encontre", "Gere sugestões de momentos fortes."],
   ["03", "Personalize", "Ajuste formato, tela e legendas."],
   ["04", "Exporte", "Baixe o corte pronto para publicar."]
@@ -107,7 +107,7 @@ export default function PresentationPage() {
       </section>
 
       <section className="presentation-proof" aria-label="Principais capacidades">
-        <article><strong>800 MB</strong><span>por arquivo de entrada</span></article>
+        <article><strong>3 GB</strong><span>por arquivo de entrada</span></article>
         <article><strong>4 min</strong><span>por clipe no plano pago</span></article>
         <article><strong>3 layouts</strong><span>game, podcast e recorte único</span></article>
         <article><strong>1 painel</strong><span>da ideia até a publicação</span></article>

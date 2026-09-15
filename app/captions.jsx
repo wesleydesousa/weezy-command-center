@@ -5,6 +5,7 @@ import { ALL_FORMATS, AudioBufferSink, BlobSource, Input } from "mediabunny";
 
 const CHUNK_SECONDS = 90;
 const TARGET_SAMPLE_RATE = 16000;
+const MAX_VIDEO_BYTES = 3 * 1024 * 1024 * 1024;
 
 function stamp(seconds) {
   const ms = Math.max(0, Math.round(seconds * 1000));
@@ -19,9 +20,12 @@ function audioBufferToMono(buffer, absoluteStart, absoluteEnd, timestamp) {
   const output = new Float32Array(Math.max(0, Math.floor((lastFrame - firstFrame) / ratio)));
   const channels = Array.from({ length: buffer.numberOfChannels }, (_, index) => buffer.getChannelData(index));
   for (let i = 0; i < output.length; i++) {
-    const sourceIndex = Math.min(lastFrame - 1, firstFrame + Math.floor(i * ratio));
+    const sourcePosition = firstFrame + i * ratio;
+    const sourceIndex = Math.min(lastFrame - 1, Math.floor(sourcePosition));
+    const nextIndex = Math.min(lastFrame - 1, sourceIndex + 1);
+    const mix = sourcePosition - sourceIndex;
     let value = 0;
-    for (const channel of channels) value += channel[sourceIndex] || 0;
+    for (const channel of channels) value += (channel[sourceIndex] || 0) * (1 - mix) + (channel[nextIndex] || 0) * mix;
     output[i] = value / Math.max(1, channels.length);
   }
   return output;
@@ -37,11 +41,48 @@ async function extractAudioChunk(sink, start, end) {
   const merged = new Float32Array(total);
   let offset = 0;
   for (const part of parts) { merged.set(part, offset); offset += part.length; }
+  let mean = 0;
+  for (let i = 0; i < merged.length; i++) mean += merged[i];
+  mean /= Math.max(1, merged.length);
+  const alpha = Math.exp(-2 * Math.PI * 80 / TARGET_SAMPLE_RATE);
+  let previousInput = 0, previousOutput = 0, squareSum = 0;
+  for (let i = 0; i < merged.length; i++) {
+    const input = merged[i] - mean;
+    const filtered = input - previousInput + alpha * previousOutput;
+    previousInput = input; previousOutput = filtered; merged[i] = filtered;
+    squareSum += filtered * filtered;
+  }
+  const rms = Math.sqrt(squareSum / Math.max(1, merged.length));
+  const gain = Math.min(4, Math.max(.75, .12 / Math.max(.001, rms)));
+  for (let i = 0; i < merged.length; i++) merged[i] = Math.max(-.98, Math.min(.98, merged[i] * gain));
   return merged;
+}
+
+function groupWords(chunks, chunkStart, chunkEnd, idPrefix) {
+  const cues = [];
+  let group = null;
+  const flush = () => {
+    if (!group?.text) return;
+    cues.push({ id: `${idPrefix}-${cues.length}`, start: group.start, end: group.end, text: group.text.trim() });
+    group = null;
+  };
+  for (const chunk of chunks) {
+    const text = String(chunk.text || "").trim();
+    const start = chunkStart + Number(chunk.timestamp?.[0] || 0);
+    const end = Math.min(chunkEnd, chunkStart + Number(chunk.timestamp?.[1] ?? chunkEnd - chunkStart));
+    if (!text || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) continue;
+    const nextText = group ? `${group.text}${/^[,.;!?)]/.test(text) ? "" : " "}${text}` : text;
+    if (group && (nextText.length > 48 || end - group.start > 4.5 || /[.!?]$/.test(group.text))) flush();
+    if (!group) group = { start, end, text };
+    else { group.end = end; group.text = nextText; }
+  }
+  flush();
+  return cues;
 }
 
 export default function Captions({ file, duration, settings, onChange, disabled, videoRef }) {
   const [language, setLanguage] = useState("portuguese");
+  const [quality, setQuality] = useState("detailed");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const worker = useRef(null);
@@ -63,7 +104,7 @@ export default function Captions({ file, duration, settings, onChange, disabled,
     setBusy(false); setMessage("Geração cancelada. As legendas anteriores foram mantidas.");
   }
 
-  function transcribeChunk(audio, languageCode, requestId, chunkNumber, chunkTotal) {
+  function transcribeChunk(audio, languageCode, qualityMode, requestId, chunkNumber, chunkTotal) {
     return new Promise((resolve, reject) => {
       pendingReject.current = reject;
       worker.current.onmessage = ({ data }) => {
@@ -73,14 +114,14 @@ export default function Captions({ file, duration, settings, onChange, disabled,
         if (data.type === "done") { pendingReject.current = null; resolve(data.chunks || []); }
       };
       worker.current.onerror = () => { pendingReject.current = null; reject(new Error("Falha ao iniciar a IA local.")); };
-      worker.current.postMessage({ audio, language: languageCode, requestId }, [audio.buffer]);
+      worker.current.postMessage({ audio, language: languageCode, quality: qualityMode, requestId }, [audio.buffer]);
     });
   }
 
   async function generate() {
     if (busy) return;
     if (!Number.isFinite(duration) || duration <= 0) { setMessage("Aguarde o carregamento da duração do vídeo."); return; }
-    if (file.size > 800 * 1024 * 1024) { setMessage("Escolha um vídeo de até 800 MB."); return; }
+    if (file.size > MAX_VIDEO_BYTES) { setMessage("Escolha um vídeo de até 3 GB."); return; }
     const job = ++generation.current;
     const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
     setBusy(true); setMessage("Preparando a transcrição local por partes…");
@@ -104,14 +145,8 @@ export default function Captions({ file, duration, settings, onChange, disabled,
         let peak = 0;
         for (let i = 0; i < audio.length; i++) peak = Math.max(peak, Math.abs(audio[i]));
         if (peak < .0001) continue;
-        const chunks = await transcribeChunk(audio, language, `${job}-${index}`, index + 1, totalChunks);
-        for (const [chunkIndex, chunk] of chunks.entries()) {
-          const cueStart = start + Number(chunk.timestamp?.[0] || 0);
-          const cueEnd = Math.min(end, start + Number(chunk.timestamp?.[1] ?? end - start));
-          if (Number.isFinite(cueStart) && Number.isFinite(cueEnd) && cueEnd > cueStart && chunk.text?.trim()) {
-            next.push({ id: `cue-${job}-${index}-${chunkIndex}`, start: cueStart, end: cueEnd, text: chunk.text.trim() });
-          }
-        }
+        const chunks = await transcribeChunk(audio, language, quality, `${job}-${index}`, index + 1, totalChunks);
+        next.push(...groupWords(chunks, start, end, `cue-${job}-${index}`));
       }
 
       if (job !== generation.current) return;
@@ -140,10 +175,11 @@ export default function Captions({ file, duration, settings, onChange, disabled,
 
   return <section className="captions-panel">
     <h3>Legendas automáticas · IA gratuita</h3>
-    <p>O áudio é lido em trechos de 90 segundos para usar menos memória. A transcrição cobre o vídeo inteiro, aceita arquivos de até 800 MB e permanece temporariamente neste navegador.</p>
+    <p>O áudio é lido em trechos de 90 segundos, recebe tratamento para destacar a voz e gera tempos mais precisos por palavra. A transcrição cobre o vídeo inteiro, aceita arquivos de até 3 GB e permanece neste navegador.</p>
     <fieldset disabled={disabled || busy}><div className="caption-tools">
       <p>Vídeo completo · 00:00 até {Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, "0")}</p>
       <label>Idioma<select value={language} onChange={event => setLanguage(event.target.value)}><option value="portuguese">Português</option><option value="english">Inglês</option><option value="spanish">Espanhol</option></select></label>
+      <label>Qualidade da voz<select value={quality} onChange={event => setQuality(event.target.value)}><option value="detailed">Detalhada · mais precisa</option><option value="fast">Rápida · usa menos memória</option></select></label>
       <button className="primary" type="button" onClick={generate}>Legendar vídeo inteiro</button>
     </div></fieldset>
     {busy && <button className="ghost" type="button" onClick={cancel}>Cancelar geração</button>}

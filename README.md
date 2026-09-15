@@ -6,7 +6,7 @@ Painel profissional para planejamento de conteúdo, edição de Shorts e gestão
 
 - Banco de ideias, calendário editorial e acompanhamento de produção.
 - Editor local de Shorts com cortes, reenquadramento e legendas.
-- Clipes configuráveis de até 4 minutos e transcrição completa de entradas de até 800 MB.
+- Clipes configuráveis de até 4 minutos e transcrição completa de entradas de até 3 GB.
 - Login seguro com ChatGPT, sem armazenamento de senhas no projeto.
 - Usuários, pedidos e acesso aos planos salvos em banco D1.
 - Checkout Mercado Pago com Pix e cartão.
