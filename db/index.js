@@ -7,11 +7,12 @@ export function database() {
 
 export async function ensureUser(user) {
   const now = new Date().toISOString();
+  const normalizedEmail = String(user.email || "").trim().toLowerCase();
   await database().prepare(`
     INSERT INTO users (id, email, name, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET email = excluded.email, name = excluded.name, updated_at = excluded.updated_at
-  `).bind(user.userId, user.email, user.fullName, now, now).run();
+  `).bind(user.userId, normalizedEmail, user.fullName, now, now).run();
 }
 
 export async function getAccount(userId) {

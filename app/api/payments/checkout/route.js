@@ -31,6 +31,12 @@ export async function POST(request) {
       items: [{ id: body.plan, title: selected.title, quantity: 1, currency_id: "BRL", unit_price: selected.amountCents / 100 }],
       payer: { email: user.email },
       external_reference: orderId,
+      metadata: {
+        weezy_order_id: orderId,
+        weezy_user_id: user.userId,
+        weezy_account_email: String(user.email || "").trim().toLowerCase(),
+        weezy_plan: body.plan,
+      },
       back_urls: { success: `${origin}/account?payment=success`, pending: `${origin}/account?payment=pending`, failure: `${origin}/account?payment=failure` },
       auto_return: "approved",
       notification_url: `${origin}/api/payments/webhook`,
