@@ -44,6 +44,22 @@ export async function getEffectiveSubscription(user) {
   return getActiveSubscription(user.userId);
 }
 
+export async function activatePaidOrder(order) {
+  if (!order || order.status === "approved") return;
+  const now = new Date();
+  const db = database();
+  await db.prepare("UPDATE orders SET status = 'approved', updated_at = ? WHERE id = ?")
+    .bind(now.toISOString(), order.id).run();
+  const current = await db.prepare("SELECT expires_at AS expiresAt FROM subscriptions WHERE user_id = ?").bind(order.userId).first();
+  const baseTime = current?.expiresAt && new Date(current.expiresAt) > now ? new Date(current.expiresAt).getTime() : now.getTime();
+  const expiresAt = new Date(baseTime + 30 * 24 * 60 * 60 * 1000).toISOString();
+  await db.prepare(`
+    INSERT INTO subscriptions (user_id, plan, status, expires_at, updated_at)
+    VALUES (?, ?, 'active', ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET plan = excluded.plan, status = 'active', expires_at = excluded.expires_at, updated_at = excluded.updated_at
+  `).bind(order.userId, order.plan, expiresAt, now.toISOString()).run();
+}
+
 function usagePeriod() {
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",

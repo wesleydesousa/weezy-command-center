@@ -1,6 +1,6 @@
 import { getChatGPTUser } from "../../../chatgpt-auth";
 import { database, ensureUser } from "../../../../db/index";
-import { ensureLivePixWebhook, livePixConfigured, livePixRequest } from "../../../../lib/livepix";
+import { livePixConfigured, livePixRequest } from "../../../../lib/livepix";
 
 const PLANS = {
   creator: { title: "Weezy Creator — 30 dias", amountCents: 1990 },
@@ -17,12 +17,6 @@ export async function POST(request) {
   if (!selected) return Response.json({ error: "Plano inválido." }, { status: 400 });
 
   const origin = new URL(request.url).origin;
-  try {
-    await ensureLivePixWebhook(`${origin}/api/payments/webhook`);
-  } catch {
-    return Response.json({ error: "Não foi possível conectar ao LivePix agora." }, { status: 502 });
-  }
-
   await ensureUser(user);
   const orderId = crypto.randomUUID();
   const now = new Date().toISOString();

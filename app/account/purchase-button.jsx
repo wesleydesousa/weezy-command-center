@@ -4,9 +4,11 @@ import { useState } from "react";
 
 export default function PurchaseButton({ plan, children }) {
   const [state, setState] = useState("idle");
+  const [errorMessage, setErrorMessage] = useState("");
 
   async function startCheckout() {
     setState("loading");
+    setErrorMessage("");
     try {
       const response = await fetch("/api/payments/checkout", {
         method: "POST",
@@ -18,10 +20,14 @@ export default function PurchaseButton({ plan, children }) {
       window.location.assign(result.checkoutUrl);
     } catch (error) {
       setState("error");
+      setErrorMessage(error?.message || "Não foi possível abrir o LivePix agora.");
     }
   }
 
-  return <button className="account-primary" onClick={startCheckout} disabled={state === "loading"}>
-    {state === "loading" ? "Abrindo pagamento…" : state === "error" ? "Tentar novamente" : children}
-  </button>;
+  return <div className="purchase-action">
+    <button className="account-primary" onClick={startCheckout} disabled={state === "loading"}>
+      {state === "loading" ? "Abrindo pagamento…" : state === "error" ? "Tentar novamente" : children}
+    </button>
+    {errorMessage && <small className="purchase-error" role="alert">{errorMessage}</small>}
+  </div>;
 }

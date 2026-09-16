@@ -1,11 +1,12 @@
 import { chatGPTSignOutPath, getChatGPTUser } from "../chatgpt-auth";
 import { ensureUser, getAccount, getEffectiveSubscription } from "../../db/index";
+import { reconcileLatestLivePixOrder } from "../../lib/livepix";
 import PurchaseButton from "./purchase-button";
 
 export const dynamic = "force-dynamic";
 const PLAN_LABELS = { creator: "Creator", pro: "Pro", master: "Master" };
 
-export default async function AccountPage() {
+export default async function AccountPage({ searchParams }) {
   const user = await getChatGPTUser();
 
   if (!user) return <main className="account-shell">
@@ -25,6 +26,10 @@ export default async function AccountPage() {
   </main>;
 
   await ensureUser(user);
+  const params = await searchParams;
+  if (params?.payment === "success") {
+    await reconcileLatestLivePixOrder(user.userId).catch(() => false);
+  }
   const account = await getAccount(user.userId);
   const subscription = await getEffectiveSubscription(user);
   const active = Boolean(subscription);

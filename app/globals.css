@@ -455,6 +455,9 @@ select, .idea-form input, .date-field input, .goal-control input { color: #c9d7e
 .account-card ul { min-height: 96px; padding-left: 18px; }
 .featured-plan { border-color: rgba(66,217,255,.5); }
 .account-primary { width: 100%; min-height: 44px; border: 0; border-radius: 10px; color: white; background: linear-gradient(135deg, var(--blue), #0a65bb); font-weight: 700; }
+.purchase-action { margin-top: 16px; }
+.purchase-action .account-primary { margin-top: 0; }
+.purchase-error { display: block; margin-top: 9px; color: #ffaaa5; font-size: 12px; line-height: 1.4; }
 .account-status { background: linear-gradient(145deg, rgba(22,139,255,.15), rgba(13,27,42,.88)); }
 .order-history { margin-top: 14px; }
 .order-history h2 { margin: 6px 0 20px; font: 700 28px Rajdhani; }
